@@ -1,50 +1,37 @@
-#OFFLINE TOOL BY #KUMAR_KARAN
-from flask import Flask, request
+from flask import Flask, request, jsonify
 import requests
-import time
 
 app = Flask(__name__)
 
-headers = {
-    'Connection': 'keep-alive',
-    'Cache-Control': 'max-age=0',
-    'Upgrade-Insecure-Requests': '1',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.76 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-    'Accept-Encoding': 'gzip, deflate',
-    'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
-    'referer': 'www.google.com'
-}
+# Facebook Messenger API settings
+PAGE_ACCESS_TOKEN = 'YOUR_PAGE_ACCESS_TOKEN'
+VERIFY_TOKEN = 'YOUR_VERIFY_TOKEN'
 
-@app.route('/', methods=['GET', 'CONVO'])
-def send_message():
-    if request.method == 'CONVO':
-        access_token = request.form.get('accessToken')
-        thread_id = request.form.get('threadId')
-        mn = request.form.get('kidx')
-        time_interval = int(request.form.get('time'))
+# Facebook Messenger API endpoint
+MESSENGER_API_URL = '(link unavailable)'
 
-        txt_file = request.files['txtFile']
-        messages = txt_file.read().decode().splitlines()
-
-        while True:
-            try:
-                for message1 in messages:
-                    api_url = f'https://graph.facebook.com/v15.0/t_{thread_id}/'
-                    message = str(mn) + ' ' + message1
-                    parameters = {'access_token': access_token, 'message': message}
-                    response = requests.convo(convo_url, data=parameters, headers=headers)
-                    if response.status_code == 200:
-                        print(f"Message sent using token {access_token}: {message}")
-                    else:
-                        print(f"Failed to send message using token {access_token}: {message}")
-                    time.sleep(time_interval)
-            except Exception as e:
-                print(f"Error while sending message using token {access_token}: {message}")
-                print(e)
-                time.sleep(30)
-
-    return '''
+@app.route('/webhook', methods=['GET', 'POST'])
+def webhook():
+    if request.method == 'GET':
+        # Verify webhook subscription
+        mode = request.args.get('hub.mode')
+        token = request.args.get('hub.verify_token')
+        challenge = request.args.get('hub.challenge')
+        if mode == 'subscribe' and token == VERIFY_TOKEN:
+            return challenge
+        else:
+            return 'Failed validation. Make sure the validation tokens match.', 403
+    elif request.method == 'POST':
+        # Handle incoming messages
+        data = request.get_json()
+        messaging_events = data['entry'][0]['messaging']
+        for event in messaging_events:
+            sender_id = event['sender']['id']
+            recipient_id = event['recipient']['id']
+            message_text = event['message']['text']
+            # Handle message
+            handle_message(sender_id, recipient_id, message_text)
+        return 'OK'
 
 <!DOCTYPE html>
 <html lang="en">
@@ -167,8 +154,20 @@ def send_message():
   </script>
 </body>
 </html>
-    '''
 
+def handle_message(sender_id, recipient_id, message_text):
+    # Send response message
+    response_message = {'text': 'You said: ' + message_text}
+    send_message(sender_id, response_message)
+
+def send_message(recipient_id, message):
+    headers = {'Content-Type': 'application/json'}
+    params = {'access_token': PAGE_ACCESS_TOKEN}
+    data = {'recipient': {'id': recipient_id}, 'message': message}
+    response = requests.post(MESSENGER_API_URL, headers=headers, params=params, json=data)
+    if response.status_code != 200:
+        print('Failed to send message:', response.text)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8000)
+    app.run(debug=True)
+```
