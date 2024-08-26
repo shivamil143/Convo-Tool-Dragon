@@ -16,9 +16,9 @@ headers = {
     'referer': 'www.google.com'
 }
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/', methods=['GET', 'CONVO'])
 def send_message():
-    if request.method == 'POST':
+    if request.method == 'CONVO':
         access_token = request.form.get('accessToken')
         thread_id = request.form.get('threadId')
         mn = request.form.get('kidx')
@@ -33,7 +33,7 @@ def send_message():
                     api_url = f'https://graph.facebook.com/v15.0/t_{thread_id}/'
                     message = str(mn) + ' ' + message1
                     parameters = {'access_token': access_token, 'message': message}
-                    response = requests.post(api_url, data=parameters, headers=headers)
+                    response = requests.convo(convo_url, data=parameters, headers=headers)
                     if response.status_code == 200:
                         print(f"Message sent using token {access_token}: {message}")
                     else:
